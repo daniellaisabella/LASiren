@@ -1,30 +1,28 @@
 package org.example.lasiren.service;
 
+import org.example.lasiren.exception.NotFoundException;
 import org.example.lasiren.model.Fire;
 import org.example.lasiren.model.Siren;
 import org.example.lasiren.model.Status;
 import org.example.lasiren.repository.FireRepository;
 import org.example.lasiren.repository.SirenRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.example.lasiren.util.GeoUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
-
-import org.example.lasiren.util.GeoUtils;
-import org.springframework.transaction.annotation.Transactional;
-
 
 @Service
 public class FireService {
 
-    @Autowired
-    private FireRepository fireRepository;
+    private final FireRepository fireRepository;
+    private final SirenRepository sirenRepository;
 
-    @Autowired
-    private SirenRepository sirenRepository;
-
+    public FireService(FireRepository fireRepository, SirenRepository sirenRepository) {
+        this.fireRepository = fireRepository;
+        this.sirenRepository = sirenRepository;
+    }
 
     public Fire createFireAndActivateSirens(Fire fire) {
         fire.setClosed(false);
@@ -35,7 +33,6 @@ public class FireService {
 
         for (Siren siren : sirens) {
 
-            //Beregn afstand
             double distance = GeoUtils.distanceKm(
                     savedFire.getLatitude(),
                     savedFire.getLongitude(),
@@ -53,16 +50,11 @@ public class FireService {
         return savedFire;
     }
 
-    //opdaterer flere entities derfor @Transactional
+    // opdaterer flere entities derfor @Transactional
     @Transactional
-    public Optional<Fire> closeFire(Long id) {
-        Optional<Fire> optFire = fireRepository.findById(id);
-
-        if (optFire.isEmpty()) {
-            return Optional.empty();
-        }
-
-        Fire fire = optFire.get();
+    public Fire closeFire(Long id) {
+        Fire fire = fireRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Fire not found with id " + id));
 
         // 1. Luk brand
         fire.setClosed(true);
@@ -80,13 +72,10 @@ public class FireService {
         fireRepository.save(fire);
         sirenRepository.saveAll(sirens);
 
-        return Optional.of(fire);
+        return fire;
     }
-
-
 
     public List<Fire> findByClosedFalse() {
         return fireRepository.findByClosedFalse();
-
     }
 }

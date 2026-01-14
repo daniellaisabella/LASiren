@@ -3,8 +3,6 @@ package org.example.lasiren.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
-import java.time.LocalDateTime;
-
 @Entity
 public class Siren {
     @Id
@@ -20,7 +18,6 @@ public class Siren {
     private boolean disabled;
 
     @ManyToOne
-    @JsonIgnore
     private Fire fire;
 
 
